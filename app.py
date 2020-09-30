@@ -1,6 +1,7 @@
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -17,17 +18,6 @@ def sign_in():
     r = requests.get('https://accounts.spotify.com/authorize', params=auth_params)
     return {'url': r.url}
 
-@app.route('/playlists')
-def playlists():
-    #make the list of playlists with IDs in JSON format
-    playlist_request = requests.get('https://api.spotify.com/v1/users/{}/playlists'.format(user_id), headers={'Authorization':'Bearer {}'.format(access_token)}).json()
-    playlist_results = [item['name'] for item in playlist_request['items']]
-    playlist_ids = [item['id'] for item in playlist_request['items']]
-    return {
-        'playlists': playlist_results,
-        'playlist_ids': playlist_ids
-    }
-
 @app.route('/callback/')
 def token():
     code = request.args.get('code')
@@ -38,7 +28,7 @@ def token():
     'code': code,
     'redirect_uri': 'http://localhost:5000/callback/',
     'expires_in': 3600
-}
+    }
     response = requests.post('https://accounts.spotify.com/api/token', data=body_params).json()
     global access_token
     access_token = response['access_token']
@@ -52,7 +42,51 @@ def token():
 @app.route('/songs')
 def songs():
     title = request.args.get('title')
-    print(title)
+    # title_param = title.replace[' ', '+')
+    title_param = re.sub('[^0-9a-zA-Z]+', '+', title)
+
+    search_params = {
+    'q': title_param,
+    'type': 'track',
+    'limit': 3
+}
+
+    search_response = requests.get('https://api.spotify.com/v1/search', params=search_params, headers={'Authorization':'Bearer {}'.format(access_token)}).json()
+
+    song_list = []
+
+    for item in search_response['tracks']['items']:
+        song_list.append({
+            'name': item['name'],
+            'artist': ''.join([artist['name'] for artist in item['album']['artists']]),
+            'uri': item['uri']
+        })
+
+    playlist_request = requests.get('https://api.spotify.com/v1/users/{}/playlists'.format(user_id), headers={'Authorization':'Bearer {}'.format(access_token)}).json()
+
+    playlist_list = []
+
+    for item in playlist_request['items']:
+        playlist_list.append({
+            'playlist_name': item['name'],
+            'playlist_id': item['id'] 
+        })
+
+    return {
+        'songs': song_list,
+        'playlists': playlist_list
+    }
+    
+@app.route('/playlist')
+def add_to_playlist():
+    uri = request.args.get('uri')
+    playlist_id = request.args.get('id')
+    print(uri)
+    print(playlist_id)
+    playlist_response = requests.post('https://api.spotify.com/v1/playlists/{}/tracks'.format(playlist_id), params={'uris': uri}, headers={'Authorization':'Bearer {}'.format(access_token)}).json()
+    print(playlist_response)
+    return 'ok'
+
 
 if __name__ == "__main__":
     app.run(debug=True)

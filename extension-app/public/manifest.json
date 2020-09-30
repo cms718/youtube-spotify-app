@@ -1,0 +1,25 @@
+{
+  "name": "spotify_app",
+  "version": "1.0",
+  "manifest_version": 2,
+  "browser_action": {
+    "default_popup": "index.html",
+    "default_title": "Add to playlist"
+  },
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content-script.js"]
+    }
+  ],
+  "permissions": ["tabs", "activeTab"],
+  "icons": {
+    "16": "logo-small.png",
+    "48": "logo-small.png",
+    "128": "logo-small.png"
+  }
+}
