@@ -20,9 +20,8 @@ export const handleFindSong = () => {
 export const handleSignIn = async () => {
   const response = await fetch("http://localhost:5000/sign_in");
   const { url } = await response.json();
-  alert(url);
-  // var win = window.open(url);
-  // win.focus();
+  var win = window.open(url);
+  win.focus();
   return url;
 };
 
